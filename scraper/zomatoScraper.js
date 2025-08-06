@@ -88,13 +88,28 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
   const t0          = Date.now();
 
   // Launch headless Firefox
-  const browser = await playwright.firefox.launch({ headless: true });
+ // await playwright.firefox.launch({ proxy: { server: 'http://your-proxy:port' } });
+
+  const browser = await playwright.firefox.launch({ headless: true , proxy: { server: 'http://your-proxy:port' } });
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0',
-    viewport:  { width: 1280, height: 800 },
-    locale:    'en-US'
-  });
-  const page = await context.newPage();
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+                 '(KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
+      viewport: { width: 1280, height: 800 },
+      locale: 'en-US'
+    });
+    
+    // 🎯 Inject stealth script before navigation
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    });
+    
+    const page = await context.newPage();
+  // const context = await browser.newContext({
+  //   userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0',
+  //   viewport:  { width: 1280, height: 800 },
+  //   locale:    'en-US'
+  // });
+  // const page = await context.newPage();
 
   // Step 1: Collect links category by category
   for (const cat of categoryIds) {
@@ -105,6 +120,8 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
     try {
       await page.goto(pageURL, { timeout: 60000 });
       await page.waitForTimeout(3000);
+     
+
       if (cat === 1) {
         // extra wait for delivery cards
         await page.waitForSelector("div[class*='sc-']", { timeout: 15000 });
@@ -118,9 +135,11 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
     let stagnant = 0;
     while (allLinks.size < limit) {
       const before = allLinks.size;
-      await page.mouse.wheel(0, 50000);
-      await page.waitForTimeout(5000);
-
+      // await page.mouse.wheel(0, 50000);
+      // await page.waitForTimeout(5000);
+      await page.waitForTimeout(5000); // after load
+      await page.mouse.wheel(0, 30000); // slower scroll
+      await page.waitForTimeout(3000);
       const $ = cheerio.load(await page.content());
       $('a[href^="/"]').each((_, el) => {
         const href = $(el).attr('href');
