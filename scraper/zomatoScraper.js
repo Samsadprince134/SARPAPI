@@ -1,17 +1,15 @@
-// scraper/zomatoScraper.js
 require('dotenv').config();
 const playwright = require('playwright');
-const axios = require('axios');
 const cheerio = require('cheerio');
 
 async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AREA_LIMIT, 10) || 50) {
-  console.log([INFO] Start scraping for city='${city}', area='${area || 'default'}', limit=${limit});
+  console.log(`[INFO] Start scraping for city='${city}', area='${area || 'default'}', limit=${limit}`);
 
   const normalizedCity = city.trim().toLowerCase().replace(/\s+/g, '-');
   const normalizedArea = area.trim().toLowerCase().replace(/\s+/g, '-');
   const locationPath = normalizedArea
-    ? ${normalizedCity}/${normalizedArea}-restaurants
-    : ${normalizedCity}/restaurants;
+    ? `${normalizedCity}/${normalizedArea}-restaurants`
+    : `${normalizedCity}/restaurants`;
   const baseURL = process.env.ZOMATO_BASE_URL;
 
   const categoryIds = [null, 1, 3];
@@ -20,7 +18,7 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
 
   // Optional proxy setup
   const proxyServer = process.env.PROXY || null;
-  console.log([DEBUG] Proxy: ${proxyServer || 'No proxy used'});
+  console.log(`[DEBUG] Proxy: ${proxyServer || 'No proxy used'}`);
 
   const launchOptions = {
     headless: true,
@@ -33,10 +31,9 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 800 },
-    locale: 'en-US'
+    locale: 'en-US',
   });
 
-  // Inject stealth script
   await context.addInitScript(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
@@ -44,9 +41,9 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
   const page = await context.newPage();
 
   for (const cat of categoryIds) {
-    let pageURL = ${baseURL}/${locationPath};
-    if (cat) pageURL += ?category=${cat};
-    console.log(\n[INFO] Navigating to (${cat || 'default'}): ${pageURL});
+    let pageURL = `${baseURL}/${locationPath}`;
+    if (cat) pageURL += `?category=${cat}`;
+    console.log(`\n[INFO] Navigating to (${cat || 'default'}): ${pageURL}`);
 
     try {
       await page.goto(pageURL, { timeout: 60000 });
@@ -57,7 +54,7 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
         await page.waitForTimeout(5000);
       }
     } catch (err) {
-      console.warn([WARN] Failed to load ${pageURL}: ${err.message});
+      console.warn(`[WARN] Failed to load ${pageURL}: ${err.message}`);
       continue;
     }
 
@@ -83,7 +80,7 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
         }
       });
 
-      console.log([CAT ${cat || 'default'}] Links collected: ${allLinks.size});
+      console.log(`[CAT ${cat || 'default'}] Links collected: ${allLinks.size}`);
       if (allLinks.size >= limit) break;
       if (allLinks.size === before) {
         stagnant++;
@@ -101,7 +98,7 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
   }
 
   await browser.close();
-  console.log([INFO] Collected ${allLinks.size} links in ${((Date.now() - t0) / 1000).toFixed(2)}s);
+  console.log(`[INFO] Collected ${allLinks.size} links in ${((Date.now() - t0) / 1000).toFixed(2)}s`);
 
   const toFetch = Array.from(allLinks).slice(0, limit);
   return toFetch;
