@@ -21,7 +21,7 @@ async function scrapeByLocation(city, area = '', limit = parseInt(process.env.AR
   console.log(`[DEBUG] Proxy: ${proxyServer || 'No proxy used'}`);
 
   const launchOptions = {
-    headless: false,
+    headless: true,
   };
   if (proxyServer) {
     launchOptions.proxy = { server: proxyServer };
